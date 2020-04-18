@@ -12,6 +12,7 @@ use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\WorseSignatureHelp
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\ClassFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\FunctionFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\InterfaceFormatter;
+use Phpactor\Completion\Bridge\WorseReflection\Formatter\FunctionLikeSnippetFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\MethodFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\ParametersFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\TraitFormatter;
@@ -74,21 +75,22 @@ class CompletionWorseExtension implements Extension
         $container->register('completion_worse.completor.parameter', function (Container $container) {
             return new WorseParameterCompletor(
                 $container->get(WorseReflectionExtension::SERVICE_REFLECTOR),
-                $container->get(CompletionExtension::SERVICE_FORMATTER)
+                $container->get(CompletionExtension::SERVICE_SHORT_DESC_FORMATTER)
             );
         }, [ self::TAG_TOLERANT_COMPLETOR => []]);
 
         $container->register('completion_worse.completor.constructor', function (Container $container) {
             return new WorseConstructorCompletor(
                 $container->get(WorseReflectionExtension::SERVICE_REFLECTOR),
-                $container->get(CompletionExtension::SERVICE_FORMATTER)
+                $container->get(CompletionExtension::SERVICE_SHORT_DESC_FORMATTER)
             );
         }, [ self::TAG_TOLERANT_COMPLETOR => []]);
-        
+
         $container->register('completion_worse.completor.tolerant.class_member', function (Container $container) {
             return new WorseClassMemberCompletor(
                 $container->get(WorseReflectionExtension::SERVICE_REFLECTOR),
-                $container->get(CompletionExtension::SERVICE_FORMATTER)
+                $container->get(CompletionExtension::SERVICE_SHORT_DESC_FORMATTER),
+                $container->get(CompletionExtension::SERVICE_SNIPPET_FORMATTER)
             );
         }, [ self::TAG_TOLERANT_COMPLETOR => []]);
 
@@ -102,14 +104,15 @@ class CompletionWorseExtension implements Extension
         $container->register('completion_worse.completor.local_variable', function (Container $container) {
             return new WorseLocalVariableCompletor(
                 $container->get(WorseReflectionExtension::SERVICE_REFLECTOR),
-                $container->get(CompletionExtension::SERVICE_FORMATTER)
+                $container->get(CompletionExtension::SERVICE_SHORT_DESC_FORMATTER)
             );
         }, [ self::TAG_TOLERANT_COMPLETOR => []]);
 
         $container->register('completion_worse.completor.function', function (Container $container) {
             return new WorseFunctionCompletor(
                 $container->get(WorseReflectionExtension::SERVICE_REFLECTOR),
-                $container->get(CompletionExtension::SERVICE_FORMATTER)
+                $container->get(CompletionExtension::SERVICE_SHORT_DESC_FORMATTER),
+                $container->get(CompletionExtension::SERVICE_SNIPPET_FORMATTER)
             );
         }, [ self::TAG_TOLERANT_COMPLETOR => []]);
 
@@ -126,11 +129,11 @@ class CompletionWorseExtension implements Extension
         $container->register('completion_worse.completor.class_alias', function (Container $container) {
             return new WorseDeclaredClassCompletor(
                 $container->get(WorseReflectionExtension::SERVICE_REFLECTOR),
-                $container->get(CompletionExtension::SERVICE_FORMATTER)
+                $container->get(CompletionExtension::SERVICE_SHORT_DESC_FORMATTER)
             );
         }, [ self::TAG_TOLERANT_COMPLETOR => []]);
 
-        $container->register('completion_worse.formatters', function (Container $container) {
+        $container->register('completion_worse.short_desc.formatters', function (Container $container) {
             return [
                 new TypeFormatter(),
                 new TypesFormatter(),
@@ -144,7 +147,13 @@ class CompletionWorseExtension implements Extension
                 new InterfaceFormatter(),
                 new TraitFormatter(),
             ];
-        }, [ CompletionExtension::TAG_FORMATTER => []]);
+        }, [ CompletionExtension::TAG_SHORT_DESC_FORMATTER => []]);
+
+        $container->register('completion_worse.snippet.formatters', function (Container $container) {
+            return [
+                new FunctionLikeSnippetFormatter(),
+            ];
+        }, [ CompletionExtension::TAG_SNIPPET_FORMATTER => []]);
     }
 
     private function registerSignatureHelper(ContainerBuilder $container)
@@ -152,7 +161,7 @@ class CompletionWorseExtension implements Extension
         $container->register('completion_worse.signature_helper', function (Container $container) {
             return new WorseSignatureHelper(
                 $container->get(WorseReflectionExtension::SERVICE_REFLECTOR),
-                $container->get(CompletionExtension::SERVICE_FORMATTER)
+                $container->get(CompletionExtension::SERVICE_SHORT_DESC_FORMATTER)
             );
         }, [ CompletionExtension::TAG_SIGNATURE_HELPER => []]);
     }
