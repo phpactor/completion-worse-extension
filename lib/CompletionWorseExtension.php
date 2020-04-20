@@ -10,6 +10,7 @@ use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\WorseConstructorCo
 use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\WorseDeclaredClassCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\WorseSignatureHelper;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\ClassFormatter;
+use Phpactor\Completion\Bridge\WorseReflection\Formatter\ConstantFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\FunctionFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\InterfaceFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\FunctionLikeSnippetFormatter;
@@ -146,6 +147,7 @@ class CompletionWorseExtension implements Extension
                 new VariableFormatter(),
                 new InterfaceFormatter(),
                 new TraitFormatter(),
+                new ConstantFormatter(),
             ];
         }, [ CompletionExtension::TAG_SHORT_DESC_FORMATTER => []]);
 
