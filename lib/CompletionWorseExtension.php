@@ -63,6 +63,10 @@ class CompletionWorseExtension implements Extension
             self::PARAM_CLASS_COMPLETOR_LIMIT => 100,
             self::PARAM_DISABLED_COMPLETORS => [],
         ]);
+        $schema->setDescriptions([
+            self::PARAM_CLASS_COMPLETOR_LIMIT => 'Suggestion limit for the filesystem based SCF class_completor',
+            self::PARAM_DISABLED_COMPLETORS => 'List of completors to disable (e.g. ``scf_class`` and ``declared_function``)',
+        ]);
     }
 
     private function registerCompletion(ContainerBuilder $container)

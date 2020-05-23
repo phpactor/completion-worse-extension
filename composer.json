@@ -12,6 +12,7 @@
     ],
     "require": {
         "php": "^7.3",
+        "phpactor/container": "^1.3.3",
         "phpactor/completion-extension": "~0.2",
         "phpactor/worse-reflection-extension": "~0.2",
         "phpactor/source-code-filesystem-extension": "~0.1"
