@@ -34,11 +34,16 @@ use Phpactor\Extension\SourceCodeFilesystem\SourceCodeFilesystemExtension;
 use Phpactor\Extension\WorseReflection\WorseReflectionExtension;
 use Phpactor\MapResolver\Resolver;
 use Phpactor\Container\Container;
+use RuntimeException;
 
 class CompletionWorseExtension implements Extension
 {
-    const PARAM_CLASS_COMPLETOR_LIMIT = 'completion_worse.completor.class.limit';
-    const TAG_TOLERANT_COMPLETOR = 'completion_worse.tolerant_completor';
+    public const TAG_TOLERANT_COMPLETOR = 'completion_worse.tolerant_completor';
+
+    public const PARAM_DISABLED_COMPLETORS = 'completion_worse.disabled_completors';
+    public const PARAM_CLASS_COMPLETOR_LIMIT = 'completion_worse.completor.class.limit';
+
+    public const SERVICE_COMPLETOR_MAP = 'completion_worse.completor_map';
 
     /**
      * {@inheritDoc}
@@ -56,36 +61,85 @@ class CompletionWorseExtension implements Extension
     {
         $schema->setDefaults([
             self::PARAM_CLASS_COMPLETOR_LIMIT => 100,
+            self::PARAM_DISABLED_COMPLETORS => [],
         ]);
     }
 
     private function registerCompletion(ContainerBuilder $container)
     {
-        $container->register('completion_worse.completor.tolerant.chain', function (Container $container) {
-            $completors = [];
-            foreach (array_keys($container->getServiceIdsForTag(self::TAG_TOLERANT_COMPLETOR)) as $serviceId) {
-                $completors[] = $container->get($serviceId);
-            }
-
+        $container->register(ChainTolerantCompletor::class, function (Container $container) {
             return new ChainTolerantCompletor(
-                $completors,
+                array_map(function (string $serviceId) use ($container) {
+                    return $container->get($serviceId);
+                }, $container->get(self::SERVICE_COMPLETOR_MAP)),
                 $container->get('worse_reflection.tolerant_parser')
             );
         }, [ CompletionExtension::TAG_COMPLETOR => []]);
+
+        $container->register(self::SERVICE_COMPLETOR_MAP, function (Container $container) {
+            $completors = [];
+            foreach ($container->getServiceIdsForTag(self::TAG_TOLERANT_COMPLETOR) as $serviceId => $attrs) {
+                if (!isset($attrs['name'])) {
+                    throw new RuntimeException(sprintf(
+                        'Completor "%s" must declare an "name" attribute',
+                        $serviceId
+                    ));
+                }
+
+                $name = $attrs['name'];
+
+                if (isset($completors[$name])) {
+                    throw new RuntimeException(sprintf(
+                        'Completor name "%s" (service ID "%s") already registered',
+                        $name,
+                        $serviceId
+                    ));
+                }
+
+                $completors[$name] = $serviceId;
+            }
+            if ($diff = array_diff(
+                $container->getParameter(self::PARAM_DISABLED_COMPLETORS),
+                array_keys($completors)
+            )) {
+                throw new RuntimeException(sprintf(
+                    'Unknown completors specified "%s", known completors: "%s"',
+                    implode('", "', $diff),
+                    implode('", "', array_keys($completors))
+                ));
+            }
+
+            $enabledNames = array_diff(
+                array_keys($completors),
+                $container->getParameter(self::PARAM_DISABLED_COMPLETORS)
+            );
+
+            return array_filter(array_map(function (string $name, string $serviceId) use ($enabledNames) {
+                if (!in_array($name, $enabledNames)) {
+                    return false;
+                }
+                return $serviceId;
+            }, array_keys($completors), $completors));
+        });
+
 
         $container->register('completion_worse.completor.parameter', function (Container $container) {
             return new WorseParameterCompletor(
                 $container->get(WorseReflectionExtension::SERVICE_REFLECTOR),
                 $container->get(CompletionExtension::SERVICE_SHORT_DESC_FORMATTER)
             );
-        }, [ self::TAG_TOLERANT_COMPLETOR => []]);
+        }, [ self::TAG_TOLERANT_COMPLETOR => [
+            'name' => 'worse_parameter',
+        ]]);
 
         $container->register('completion_worse.completor.constructor', function (Container $container) {
             return new WorseConstructorCompletor(
                 $container->get(WorseReflectionExtension::SERVICE_REFLECTOR),
                 $container->get(CompletionExtension::SERVICE_SHORT_DESC_FORMATTER)
             );
-        }, [ self::TAG_TOLERANT_COMPLETOR => []]);
+        }, [ self::TAG_TOLERANT_COMPLETOR => [
+            'name' => 'worse_constructor',
+        ]]);
 
         $container->register('completion_worse.completor.tolerant.class_member', function (Container $container) {
             return new WorseClassMemberCompletor(
@@ -93,21 +147,27 @@ class CompletionWorseExtension implements Extension
                 $container->get(CompletionExtension::SERVICE_SHORT_DESC_FORMATTER),
                 $container->get(CompletionExtension::SERVICE_SNIPPET_FORMATTER)
             );
-        }, [ self::TAG_TOLERANT_COMPLETOR => []]);
+        }, [ self::TAG_TOLERANT_COMPLETOR => [
+            'name' => 'worse_class_member',
+        ]]);
 
         $container->register('completion_worse.completor.tolerant.class', function (Container $container) {
             return new LimitingCompletor(new ScfClassCompletor(
                 $container->get(SourceCodeFilesystemExtension::SERVICE_REGISTRY)->get('composer'),
                 $container->get('class_to_file.file_to_class')
             ), $container->getParameter(self::PARAM_CLASS_COMPLETOR_LIMIT));
-        }, [ self::TAG_TOLERANT_COMPLETOR => []]);
+        }, [ self::TAG_TOLERANT_COMPLETOR => [
+            'name' => 'scf_class',
+        ]]);
 
         $container->register('completion_worse.completor.local_variable', function (Container $container) {
             return new WorseLocalVariableCompletor(
                 $container->get(WorseReflectionExtension::SERVICE_REFLECTOR),
                 $container->get(CompletionExtension::SERVICE_SHORT_DESC_FORMATTER)
             );
-        }, [ self::TAG_TOLERANT_COMPLETOR => []]);
+        }, [ self::TAG_TOLERANT_COMPLETOR => [
+            'name' => 'worse_local_variable',
+        ]]);
 
         $container->register('completion_worse.completor.function', function (Container $container) {
             return new WorseFunctionCompletor(
@@ -115,24 +175,32 @@ class CompletionWorseExtension implements Extension
                 $container->get(CompletionExtension::SERVICE_SHORT_DESC_FORMATTER),
                 $container->get(CompletionExtension::SERVICE_SNIPPET_FORMATTER)
             );
-        }, [ self::TAG_TOLERANT_COMPLETOR => []]);
+        }, [ self::TAG_TOLERANT_COMPLETOR => [
+            'name' => 'declared_function',
+        ]]);
 
         $container->register('completion_worse.completor.constant', function (Container $container) {
             return new WorseConstantCompletor();
-        }, [ self::TAG_TOLERANT_COMPLETOR => []]);
+        }, [ self::TAG_TOLERANT_COMPLETOR => [
+            'name' => 'declared_constant',
+        ]]);
 
         $container->register('completion_worse.completor.class_alias', function (Container $container) {
             return new WorseClassAliasCompletor(
                 $container->get(WorseReflectionExtension::SERVICE_REFLECTOR)
             );
-        }, [ self::TAG_TOLERANT_COMPLETOR => []]);
+        }, [ self::TAG_TOLERANT_COMPLETOR => [
+            'name' => 'worse_class_alias',
+        ]]);
 
-        $container->register('completion_worse.completor.class_alias', function (Container $container) {
+        $container->register('completion_worse.completor.declared_class', function (Container $container) {
             return new WorseDeclaredClassCompletor(
                 $container->get(WorseReflectionExtension::SERVICE_REFLECTOR),
                 $container->get(CompletionExtension::SERVICE_SHORT_DESC_FORMATTER)
             );
-        }, [ self::TAG_TOLERANT_COMPLETOR => []]);
+        }, [ self::TAG_TOLERANT_COMPLETOR => [
+            'name' => 'declared_class',
+        ]]);
 
         $container->register('completion_worse.short_desc.formatters', function (Container $container) {
             return [
