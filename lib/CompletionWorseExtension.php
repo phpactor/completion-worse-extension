@@ -3,6 +3,7 @@
 namespace Phpactor\Extension\CompletionWorse;
 
 use Phpactor\Completion\Bridge\TolerantParser\LimitingCompletor;
+use Phpactor\Completion\Bridge\TolerantParser\ReferenceFinder\NameSearcherCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\SourceCodeFilesystem\ScfClassCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\WorseClassAliasCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\WorseConstantCompletor;
@@ -34,6 +35,7 @@ use Phpactor\Extension\SourceCodeFilesystem\SourceCodeFilesystemExtension;
 use Phpactor\Extension\WorseReflection\WorseReflectionExtension;
 use Phpactor\MapResolver\Resolver;
 use Phpactor\Container\Container;
+use Phpactor\ReferenceFinder\NameSearcher;
 use RuntimeException;
 
 class CompletionWorseExtension implements Extension
@@ -204,6 +206,14 @@ class CompletionWorseExtension implements Extension
             );
         }, [ self::TAG_TOLERANT_COMPLETOR => [
             'name' => 'declared_class',
+        ]]);
+
+        $container->register('completion_worse.completor.name_search', function (Container $container) {
+            return new NameSearcherCompletor(
+                $container->get(NameSearcher::class)
+            );
+        }, [ self::TAG_TOLERANT_COMPLETOR => [
+            'name' => 'name_search',
         ]]);
 
         $container->register('completion_worse.short_desc.formatters', function (Container $container) {

@@ -11,6 +11,7 @@ use Phpactor\Extension\ClassToFile\ClassToFileExtension;
 use Phpactor\Extension\CompletionWorse\CompletionWorseExtension;
 use Phpactor\Extension\Completion\CompletionExtension;
 use Phpactor\Extension\ComposerAutoloader\ComposerAutoloaderExtension;
+use Phpactor\Extension\ReferenceFinder\ReferenceFinderExtension;
 use Phpactor\Extension\SourceCodeFilesystem\SourceCodeFilesystemExtension;
 use Phpactor\Extension\WorseReflection\WorseReflectionExtension;
 use Phpactor\FilePathResolverExtension\FilePathResolverExtension;
@@ -69,7 +70,8 @@ class CompletionWorseExtensionTest extends TestCase
             LoggingExtension::class,
             WorseReflectionExtension::class,
             CompletionWorseExtension::class,
-            SourceCodeFilesystemExtension::class
+            SourceCodeFilesystemExtension::class,
+            ReferenceFinderExtension::class,
         ],
             array_merge([
                 FilePathResolverExtension::PARAM_APPLICATION_ROOT => __DIR__,
