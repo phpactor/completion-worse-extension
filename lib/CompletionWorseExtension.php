@@ -5,6 +5,7 @@ namespace Phpactor\Extension\CompletionWorse;
 use Phpactor\Completion\Bridge\TolerantParser\LimitingCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\ReferenceFinder\NameSearcherCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\SourceCodeFilesystem\ScfClassCompletor;
+use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\AnnotationCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\WorseClassAliasCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\WorseConstantCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\WorseConstructorCompletor;
@@ -79,6 +80,13 @@ class CompletionWorseExtension implements Extension
                     return $container->get($serviceId);
                 }, $container->get(self::SERVICE_COMPLETOR_MAP)),
                 $container->get('worse_reflection.tolerant_parser')
+            );
+        }, [ CompletionExtension::TAG_COMPLETOR => []]);
+
+        $container->register(AnnotationCompletor::class, function (Container $container) {
+            return new AnnotationCompletor(
+                $container->get(NameSearcher::class),
+                $container->get(WorseReflectionExtension::SERVICE_REFLECTOR)
             );
         }, [ CompletionExtension::TAG_COMPLETOR => []]);
 
