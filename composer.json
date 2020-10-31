@@ -2,6 +2,7 @@
     "name": "phpactor/completion-worse-extension",
     "description": "Collection of completors based on Worse Reflection and the Tolerant PHP Parser",
     "minimum-stability": "dev",
+    "prefer-stable":true,
     "license": "MIT",
     "type": "phpactor-extension",
     "authors": [
