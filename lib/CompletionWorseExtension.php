@@ -2,9 +2,9 @@
 
 namespace Phpactor\Extension\CompletionWorse;
 
+use Phpactor\Completion\Bridge\TolerantParser\ImportedNameSearcherCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\LimitingCompletor;
-use Phpactor\Completion\Bridge\TolerantParser\ReferenceFinder\NameSearcherCompletor;
-use Phpactor\Completion\Bridge\TolerantParser\ResolveAliasSuggestionCompletor;
+use Phpactor\Completion\Bridge\TolerantParser\ReferenceFinder\NameSearcherCompletor as TolerantNameSearcherCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\SourceCodeFilesystem\ScfClassCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\DoctrineAnnotationCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\WorseClassAliasCompletor;
@@ -30,6 +30,8 @@ use Phpactor\Completion\Bridge\WorseReflection\Formatter\ParameterFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\PropertyFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\TypeFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\TypesFormatter;
+use Phpactor\Completion\Core\Completor\CoreNameSearcherCompletor;
+use Phpactor\Completion\Core\Completor\NameSearcherCompletor;
 use Phpactor\Container\Extension;
 use Phpactor\Container\ContainerBuilder;
 use Phpactor\Extension\Completion\CompletionExtension;
@@ -76,31 +78,41 @@ class CompletionWorseExtension implements Extension
     private function registerCompletion(ContainerBuilder $container)
     {
         $container->register(ChainTolerantCompletor::class, function (Container $container) {
-            $chainCompletor = new ChainTolerantCompletor(
+            return new ChainTolerantCompletor(
                 array_map(function (string $serviceId) use ($container) {
                     return $container->get($serviceId);
                 }, $container->get(self::SERVICE_COMPLETOR_MAP)),
                 $container->get('worse_reflection.tolerant_parser')
             );
-
-            return new ResolveAliasSuggestionCompletor(
-                $chainCompletor,
-                $container->get('worse_reflection.tolerant_parser'),
-            );
         }, [ CompletionExtension::TAG_COMPLETOR => []]);
 
-        $container->register(DoctrineAnnotationCompletor::class, function (Container $container) {
-            $annotationCompletor = new DoctrineAnnotationCompletor(
-                $container->get(NameSearcher::class),
+        $container->register('completion_worse.completor.doctrine_annotation', function (Container $container) {
+            return new DoctrineAnnotationCompletor(
+                $container->get(NameSearcherCompletor::class),
                 $container->get(WorseReflectionExtension::SERVICE_REFLECTOR),
                 $container->get('worse_reflection.tolerant_parser'),
             );
+        }, [ CompletionExtension::TAG_COMPLETOR => []]);
 
-            return new ResolveAliasSuggestionCompletor(
-                $annotationCompletor,
+        $container->register('completion_worse.completor.doctrine_annotation.imported_name', function (Container $container) {
+            return new DoctrineAnnotationCompletor(
+                $container->get(ImportedNameSearcherCompletor::class),
+                $container->get(WorseReflectionExtension::SERVICE_REFLECTOR),
                 $container->get('worse_reflection.tolerant_parser'),
             );
         }, [ CompletionExtension::TAG_COMPLETOR => []]);
+
+        $container->register(NameSearcherCompletor::class, function (Container $container) {
+            return new CoreNameSearcherCompletor(
+                $container->get(NameSearcher::class),
+            );
+        });
+
+        $container->register(ImportedNameSearcherCompletor::class, function (Container $container) {
+            return new ImportedNameSearcherCompletor(
+                $container->get(NameSearcherCompletor::class),
+            );
+        });
 
         $container->register(self::SERVICE_COMPLETOR_MAP, function (Container $container) {
             $completors = [];
@@ -228,12 +240,21 @@ class CompletionWorseExtension implements Extension
         ]]);
 
         $container->register('completion_worse.completor.name_search', function (Container $container) {
-            return new NameSearcherCompletor(
-                $container->get(NameSearcher::class)
+            return new TolerantNameSearcherCompletor(
+                $container->get(NameSearcherCompletor::class),
             );
         }, [ self::TAG_TOLERANT_COMPLETOR => [
             'name' => 'name_search',
         ]]);
+
+        $container->register('completion_worse.completor.name_search.imported_name', function (Container $container) {
+            return new TolerantNameSearcherCompletor(
+                $container->get(ImportedNameSearcherCompletor::class),
+            );
+        }, [ self::TAG_TOLERANT_COMPLETOR => [
+            'name' => 'imported_name_search',
+        ]]);
+
 
         $container->register('completion_worse.short_desc.formatters', function (Container $container) {
             return [
