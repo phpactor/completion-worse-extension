@@ -4,6 +4,7 @@ namespace Phpactor\Extension\CompletionWorse;
 
 use Phpactor\Completion\Bridge\TolerantParser\LimitingCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\ReferenceFinder\NameSearcherCompletor;
+use Phpactor\Completion\Bridge\TolerantParser\ResolveAliasSuggestionCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\SourceCodeFilesystem\ScfClassCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\DoctrineAnnotationCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\WorseClassAliasCompletor;
@@ -75,18 +76,29 @@ class CompletionWorseExtension implements Extension
     private function registerCompletion(ContainerBuilder $container)
     {
         $container->register(ChainTolerantCompletor::class, function (Container $container) {
-            return new ChainTolerantCompletor(
+            $chainCompletor = new ChainTolerantCompletor(
                 array_map(function (string $serviceId) use ($container) {
                     return $container->get($serviceId);
                 }, $container->get(self::SERVICE_COMPLETOR_MAP)),
                 $container->get('worse_reflection.tolerant_parser')
             );
+
+            return new ResolveAliasSuggestionCompletor(
+                $chainCompletor,
+                $container->get('worse_reflection.tolerant_parser'),
+            );
         }, [ CompletionExtension::TAG_COMPLETOR => []]);
 
         $container->register(DoctrineAnnotationCompletor::class, function (Container $container) {
-            return new DoctrineAnnotationCompletor(
+            $annotationCompletor = new DoctrineAnnotationCompletor(
                 $container->get(NameSearcher::class),
-                $container->get(WorseReflectionExtension::SERVICE_REFLECTOR)
+                $container->get(WorseReflectionExtension::SERVICE_REFLECTOR),
+                $container->get('worse_reflection.tolerant_parser'),
+            );
+
+            return new ResolveAliasSuggestionCompletor(
+                $annotationCompletor,
+                $container->get('worse_reflection.tolerant_parser'),
             );
         }, [ CompletionExtension::TAG_COMPLETOR => []]);
 
@@ -135,7 +147,6 @@ class CompletionWorseExtension implements Extension
                 return $serviceId;
             }, array_keys($completors), $completors));
         });
-
 
         $container->register('completion_worse.completor.parameter', function (Container $container) {
             return new WorseParameterCompletor(
