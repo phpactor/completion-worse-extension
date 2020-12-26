@@ -6,6 +6,7 @@ use Phpactor\Completion\Bridge\TolerantParser\LimitingCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\ReferenceFinder\NameSearcherCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\SourceCodeFilesystem\ScfClassCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\DoctrineAnnotationCompletor;
+use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\KeywordCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\WorseClassAliasCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\WorseConstantCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\WorseConstructorCompletor;
@@ -222,6 +223,13 @@ class CompletionWorseExtension implements Extension
             );
         }, [ self::TAG_TOLERANT_COMPLETOR => [
             'name' => 'name_search',
+        ]]);
+
+        $container->register('completion_worse.completor.keyword', function (Container $container) {
+            return new KeywordCompletor(
+            );
+        }, [ self::TAG_TOLERANT_COMPLETOR => [
+            'name' => 'keyword',
         ]]);
 
         $container->register('completion_worse.short_desc.formatters', function (Container $container) {
