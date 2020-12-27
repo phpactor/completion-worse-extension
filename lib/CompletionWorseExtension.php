@@ -24,6 +24,7 @@ use Phpactor\Completion\Bridge\TolerantParser\ChainTolerantCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\WorseClassMemberCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\WorseFunctionCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\WorseParameterCompletor;
+use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\WorseNamedParameterCompletor;
 use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\WorseLocalVariableCompletor;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\ParameterFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\PropertyFormatter;
@@ -144,6 +145,22 @@ class CompletionWorseExtension implements Extension
             );
         }, [ self::TAG_TOLERANT_COMPLETOR => [
             'name' => 'worse_parameter',
+        ]]);
+        $container->register('completion_worse.completor.named_parameter', function (Container $container) {
+            return new WorseNamedParameterCompletor(
+                $container->get(WorseReflectionExtension::SERVICE_REFLECTOR),
+                $container->get(CompletionExtension::SERVICE_SHORT_DESC_FORMATTER)
+            );
+        }, [ self::TAG_TOLERANT_COMPLETOR => [
+            'name' => 'worse_named_parameter',
+        ]]);
+        $container->register('completion_worse.completor.constructor', function (Container $container) {
+            return new WorseConstructorCompletor(
+                $container->get(WorseReflectionExtension::SERVICE_REFLECTOR),
+                $container->get(CompletionExtension::SERVICE_SHORT_DESC_FORMATTER)
+            );
+        }, [ self::TAG_TOLERANT_COMPLETOR => [
+            'name' => 'worse_constructor',
         ]]);
 
         $container->register('completion_worse.completor.constructor', function (Container $container) {
