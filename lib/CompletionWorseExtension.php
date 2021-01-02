@@ -30,6 +30,9 @@ use Phpactor\Completion\Bridge\WorseReflection\Formatter\ParameterFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\PropertyFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\TypeFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\TypesFormatter;
+use Phpactor\Completion\Core\DocumentPrioritizer\DefaultResultPrioritizer;
+use Phpactor\Completion\Core\DocumentPrioritizer\DocumentPrioritizer;
+use Phpactor\Completion\Core\DocumentPrioritizer\SimilarityResultPrioritizer;
 use Phpactor\Container\Extension;
 use Phpactor\Container\ContainerBuilder;
 use Phpactor\Extension\Completion\CompletionExtension;
@@ -46,8 +49,12 @@ class CompletionWorseExtension implements Extension
 
     public const PARAM_DISABLED_COMPLETORS = 'completion_worse.disabled_completors';
     public const PARAM_CLASS_COMPLETOR_LIMIT = 'completion_worse.completor.class.limit';
+    public const PARAM_NAME_COMPLETION_PRIORITY = 'completion_worse.name_completion_priority';
 
     public const SERVICE_COMPLETOR_MAP = 'completion_worse.completor_map';
+
+    public const NAME_SEARCH_STRATEGY_PROXIMITY = 'proximity';
+    public const NAME_SEARCH_STRATEGY_NONE = 'none';
 
     /**
      * {@inheritDoc}
@@ -66,14 +73,21 @@ class CompletionWorseExtension implements Extension
         $schema->setDefaults([
             self::PARAM_CLASS_COMPLETOR_LIMIT => 100,
             self::PARAM_DISABLED_COMPLETORS => [],
+            self::PARAM_NAME_COMPLETION_PRIORITY => self::NAME_SEARCH_STRATEGY_PROXIMITY,
         ]);
         $schema->setDescriptions([
             self::PARAM_CLASS_COMPLETOR_LIMIT => 'Suggestion limit for the filesystem based SCF class_completor',
             self::PARAM_DISABLED_COMPLETORS => 'List of completors to disable (e.g. ``scf_class`` and ``declared_function``)',
+            self::PARAM_NAME_COMPLETION_PRIORITY => <<<EOT
+Strategy to use when ordering completion results for classes and functions:
+
+- `proximity`: Classes and functions will be ordered by their proximity to the text document being edited.
+- `none`: No ordering will be applied.
+EOT
         ]);
     }
 
-    private function registerCompletion(ContainerBuilder $container)
+    private function registerCompletion(ContainerBuilder $container): void
     {
         $container->register(ChainTolerantCompletor::class, function (Container $container) {
             return new ChainTolerantCompletor(
@@ -235,11 +249,30 @@ class CompletionWorseExtension implements Extension
 
         $container->register('completion_worse.completor.name_search', function (Container $container) {
             return new NameSearcherCompletor(
-                $container->get(NameSearcher::class)
+                $container->get(NameSearcher::class),
+                $container->get(DocumentPrioritizer::class)
             );
         }, [ self::TAG_TOLERANT_COMPLETOR => [
             'name' => 'name_search',
         ]]);
+
+        $container->register(DocumentPrioritizer::class, function (Container $container) {
+            switch ($container->getParameter(self::PARAM_NAME_COMPLETION_PRIORITY)) {
+                case self::NAME_SEARCH_STRATEGY_PROXIMITY:
+                    return new SimilarityResultPrioritizer();
+                case self::NAME_SEARCH_STRATEGY_NONE:
+                    return new DefaultResultPrioritizer();
+                default:
+                    throw new RuntimeException(sprintf(
+                        'Unknown search priority strategy "%s", must be one of "%s"',
+                        $container->getParameter(self::PARAM_NAME_COMPLETION_PRIORITY),
+                        implode('", "', [
+                            self::NAME_SEARCH_STRATEGY_PROXIMITY,
+                            self::NAME_SEARCH_STRATEGY_NONE
+                        ])
+                    ));
+            }
+        });
 
         $container->register('completion_worse.short_desc.formatters', function (Container $container) {
             return [

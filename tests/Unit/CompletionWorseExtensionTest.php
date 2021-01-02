@@ -4,6 +4,7 @@ namespace Phpactor\Extension\CompletionWorse\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use Phpactor\Completion\Core\Completor;
+use Phpactor\Completion\Core\DocumentPrioritizer\DocumentPrioritizer;
 use Phpactor\Container\Container;
 use Phpactor\Container\PhpactorContainer;
 use Phpactor\Extension\Logger\LoggingExtension;
@@ -21,7 +22,7 @@ use RuntimeException;
 
 class CompletionWorseExtensionTest extends TestCase
 {
-    public function testBuild()
+    public function testBuild(): void
     {
         $container = $this->buildContainer();
 
@@ -35,7 +36,7 @@ class CompletionWorseExtensionTest extends TestCase
         );
     }
 
-    public function testDisableCompletors()
+    public function testDisableCompletors(): void
     {
         $container = $this->buildContainer([
             CompletionWorseExtension::PARAM_DISABLED_COMPLETORS => [
@@ -47,7 +48,7 @@ class CompletionWorseExtensionTest extends TestCase
         self::assertFalse(in_array('completion_worse.completor.constructor', $completors), 'Completor disabled');
     }
 
-    public function testExceptionWhenDisabledCompletorNotExisting()
+    public function testExceptionWhenDisabledCompletorNotExisting(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Unknown completors');
@@ -57,6 +58,16 @@ class CompletionWorseExtensionTest extends TestCase
             ],
         ]);
         $container->get('completion_worse.completor_map');
+    }
+
+    public function testExceptionWhenSelectingUnknownSearchPriotityStrategy(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Unknown search priority strategy "asd"');
+        $container = $this->buildContainer([
+            CompletionWorseExtension::PARAM_NAME_COMPLETION_PRIORITY => 'asd',
+        ]);
+        $container->get(DocumentPrioritizer::class);
     }
 
     private function buildContainer(array $config = []): Container
