@@ -7,3 +7,4 @@
 /stubs
 /.composer.lock
 .phpunit.result.cache
+/.vscode
