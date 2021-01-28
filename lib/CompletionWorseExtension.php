@@ -60,7 +60,7 @@ class CompletionWorseExtension implements Extension
     /**
      * {@inheritDoc}
      */
-    public function load(ContainerBuilder $container)
+    public function load(ContainerBuilder $container): void
     {
         $this->registerCompletion($container);
         $this->registerSignatureHelper($container);
@@ -69,7 +69,7 @@ class CompletionWorseExtension implements Extension
     /**
      * {@inheritDoc}
      */
-    public function configure(Resolver $schema)
+    public function configure(Resolver $schema): void
     {
         $schema->setDefaults([
             self::PARAM_CLASS_COMPLETOR_LIMIT => 100,
@@ -80,11 +80,11 @@ class CompletionWorseExtension implements Extension
             self::PARAM_CLASS_COMPLETOR_LIMIT => 'Suggestion limit for the filesystem based SCF class_completor',
             self::PARAM_DISABLED_COMPLETORS => 'List of completors to disable (e.g. ``scf_class`` and ``declared_function``)',
             self::PARAM_NAME_COMPLETION_PRIORITY => <<<EOT
-Strategy to use when ordering completion results for classes and functions:
+                Strategy to use when ordering completion results for classes and functions:
 
-- `proximity`: Classes and functions will be ordered by their proximity to the text document being edited.
-- `none`: No ordering will be applied.
-EOT
+                - `proximity`: Classes and functions will be ordered by their proximity to the text document being edited.
+                - `none`: No ordering will be applied.
+                EOT
         ]);
     }
 
@@ -306,7 +306,7 @@ EOT
         }, [ CompletionExtension::TAG_SNIPPET_FORMATTER => []]);
     }
 
-    private function registerSignatureHelper(ContainerBuilder $container)
+    private function registerSignatureHelper(ContainerBuilder $container): void
     {
         $container->register('completion_worse.signature_helper', function (Container $container) {
             return new WorseSignatureHelper(

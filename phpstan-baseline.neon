@@ -1,7 +1,0 @@
-parameters:
-	ignoreErrors:
-		-
-			message: "#^Method Phpactor\\\\Extension\\\\CompletionWorse\\\\CompletionWorseExtension\\:\\:registerSignatureHelper\\(\\) has no return typehint specified\\.$#"
-			count: 1
-			path: lib/CompletionWorseExtension.php
-
