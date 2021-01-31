@@ -10,12 +10,12 @@
         }
     ],
     "require": {
-        "php": "^7.3",
+        "php": "^7.3 || ^8.0",
         "phpactor/completion": "~0.4.3",
-        "phpactor/completion-extension": "~0.2",
-        "phpactor/reference-finder-extension": "^0.1.5",
-        "phpactor/source-code-filesystem-extension": "~0.1",
-        "phpactor/worse-reflection-extension": "~0.2"
+        "phpactor/completion-extension": "^0.2.4",
+        "phpactor/reference-finder-extension": "^0.1.7",
+        "phpactor/source-code-filesystem-extension": "^0.1.5",
+        "phpactor/worse-reflection-extension": "^0.2.4"
     },
     "require-dev": {
         "ergebnis/composer-normalize": "^2.0",
