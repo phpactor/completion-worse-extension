@@ -34,6 +34,7 @@ use Phpactor\Completion\Bridge\WorseReflection\Formatter\TypesFormatter;
 use Phpactor\Completion\Core\DocumentPrioritizer\DefaultResultPrioritizer;
 use Phpactor\Completion\Core\DocumentPrioritizer\DocumentPrioritizer;
 use Phpactor\Completion\Core\DocumentPrioritizer\SimilarityResultPrioritizer;
+use Phpactor\Completion\Core\Formatter\NameSearchResultFunctionSnippetFormatter;
 use Phpactor\Container\Extension;
 use Phpactor\Container\ContainerBuilder;
 use Phpactor\Extension\Completion\CompletionExtension;
@@ -53,6 +54,7 @@ class CompletionWorseExtension implements Extension
     public const PARAM_NAME_COMPLETION_PRIORITY = 'completion_worse.name_completion_priority';
 
     public const SERVICE_COMPLETOR_MAP = 'completion_worse.completor_map';
+    public const SERVICE_NAME_SEARCH_RESULT_FUNCTION_SNIPPET_FORMATTER = 'completion_worse.snippet.formatter.name_search_result_function';
 
     public const NAME_SEARCH_STRATEGY_PROXIMITY = 'proximity';
     public const NAME_SEARCH_STRATEGY_NONE = 'none';
@@ -251,11 +253,22 @@ class CompletionWorseExtension implements Extension
         $container->register('completion_worse.completor.name_search', function (Container $container) {
             return new NameSearcherCompletor(
                 $container->get(NameSearcher::class),
+                $container->get(self::SERVICE_NAME_SEARCH_RESULT_FUNCTION_SNIPPET_FORMATTER),
                 $container->get(DocumentPrioritizer::class)
             );
         }, [ self::TAG_TOLERANT_COMPLETOR => [
             'name' => 'name_search',
         ]]);
+
+        $container->register(
+            self::SERVICE_NAME_SEARCH_RESULT_FUNCTION_SNIPPET_FORMATTER,
+            function (Container $container) {
+                return new NameSearchResultFunctionSnippetFormatter(
+                    $container->get(CompletionExtension::SERVICE_SNIPPET_FORMATTER),
+                    $container->get(WorseReflectionExtension::SERVICE_REFLECTOR)
+                );
+            }
+        );
 
         $container->register('completion_worse.completor.keyword', function (Container $container) {
             return new KeywordCompletor(
