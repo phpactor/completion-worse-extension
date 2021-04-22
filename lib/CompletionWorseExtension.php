@@ -16,7 +16,6 @@ use Phpactor\Completion\Bridge\WorseReflection\Formatter\ClassFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\ConstantFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\FunctionFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\InterfaceFormatter;
-use Phpactor\Completion\Bridge\WorseReflection\Formatter\FunctionLikeSnippetFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\MethodFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\ParametersFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\TraitFormatter;
@@ -31,10 +30,14 @@ use Phpactor\Completion\Bridge\WorseReflection\Formatter\ParameterFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\PropertyFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\TypeFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\TypesFormatter;
+use Phpactor\Completion\Bridge\WorseReflection\SnippetFormatter\FunctionLikeSnippetFormatter;
+use Phpactor\Completion\Bridge\WorseReflection\SnippetFormatter\NameSearchResultClassSnippetFormatter;
+use Phpactor\Completion\Bridge\WorseReflection\SnippetFormatter\NameSearchResultFunctionSnippetFormatter;
+use Phpactor\Completion\Bridge\WorseReflection\SnippetFormatter\ParametersSnippetFormatter;
 use Phpactor\Completion\Core\DocumentPrioritizer\DefaultResultPrioritizer;
 use Phpactor\Completion\Core\DocumentPrioritizer\DocumentPrioritizer;
 use Phpactor\Completion\Core\DocumentPrioritizer\SimilarityResultPrioritizer;
-use Phpactor\Completion\Core\Formatter\NameSearchResultFunctionSnippetFormatter;
+use Phpactor\Completion\Core\Formatter\ObjectFormatter;
 use Phpactor\Container\Extension;
 use Phpactor\Container\ContainerBuilder;
 use Phpactor\Extension\Completion\CompletionExtension;
@@ -54,7 +57,7 @@ class CompletionWorseExtension implements Extension
     public const PARAM_NAME_COMPLETION_PRIORITY = 'completion_worse.name_completion_priority';
 
     public const SERVICE_COMPLETOR_MAP = 'completion_worse.completor_map';
-    public const SERVICE_NAME_SEARCH_RESULT_FUNCTION_SNIPPET_FORMATTER = 'completion_worse.snippet.formatter.name_search_result_function';
+    public const SERVICE_COMPLETION_WORSE_SNIPPET_FORMATTERS = 'completion_worse.snippet.formatters';
 
     public const NAME_SEARCH_STRATEGY_PROXIMITY = 'proximity';
     public const NAME_SEARCH_STRATEGY_NONE = 'none';
@@ -253,22 +256,14 @@ class CompletionWorseExtension implements Extension
         $container->register('completion_worse.completor.name_search', function (Container $container) {
             return new NameSearcherCompletor(
                 $container->get(NameSearcher::class),
-                $container->get(self::SERVICE_NAME_SEARCH_RESULT_FUNCTION_SNIPPET_FORMATTER),
+                new ObjectFormatter(
+                    $container->get(self::SERVICE_COMPLETION_WORSE_SNIPPET_FORMATTERS)
+                ),
                 $container->get(DocumentPrioritizer::class)
             );
         }, [ self::TAG_TOLERANT_COMPLETOR => [
             'name' => 'name_search',
         ]]);
-
-        $container->register(
-            self::SERVICE_NAME_SEARCH_RESULT_FUNCTION_SNIPPET_FORMATTER,
-            function (Container $container) {
-                return new NameSearchResultFunctionSnippetFormatter(
-                    $container->get(CompletionExtension::SERVICE_SNIPPET_FORMATTER),
-                    $container->get(WorseReflectionExtension::SERVICE_REFLECTOR)
-                );
-            }
-        );
 
         $container->register('completion_worse.completor.keyword', function (Container $container) {
             return new KeywordCompletor(
@@ -312,11 +307,19 @@ class CompletionWorseExtension implements Extension
             ];
         }, [ CompletionExtension::TAG_SHORT_DESC_FORMATTER => []]);
 
-        $container->register('completion_worse.snippet.formatters', function (Container $container) {
-            return [
-                new FunctionLikeSnippetFormatter(),
-            ];
-        }, [ CompletionExtension::TAG_SNIPPET_FORMATTER => []]);
+        $container->register(
+            self::SERVICE_COMPLETION_WORSE_SNIPPET_FORMATTERS,
+            function (Container $container) {
+                $reflector = $container->get(WorseReflectionExtension::SERVICE_REFLECTOR);
+                return [
+                    new FunctionLikeSnippetFormatter(),
+                    new ParametersSnippetFormatter(),
+                    new NameSearchResultFunctionSnippetFormatter($reflector),
+                    new NameSearchResultClassSnippetFormatter($reflector),
+                ];
+            },
+            [ CompletionExtension::TAG_SNIPPET_FORMATTER => []]
+        );
     }
 
     private function registerSignatureHelper(ContainerBuilder $container): void
