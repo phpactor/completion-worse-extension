@@ -61,6 +61,8 @@ class CompletionWorseExtension implements Extension
 
     public const NAME_SEARCH_STRATEGY_PROXIMITY = 'proximity';
     public const NAME_SEARCH_STRATEGY_NONE = 'none';
+    public const PARAM_EXPERIMENTAL = 'completion_worse.experimantal';
+    public const PARAM_SNIPPETS = 'completion_worse.snippets';
 
     /**
      * {@inheritDoc}
@@ -80,8 +82,12 @@ class CompletionWorseExtension implements Extension
             self::PARAM_CLASS_COMPLETOR_LIMIT => 100,
             self::PARAM_DISABLED_COMPLETORS => [],
             self::PARAM_NAME_COMPLETION_PRIORITY => self::NAME_SEARCH_STRATEGY_PROXIMITY,
+            self::PARAM_SNIPPETS => true,
+            self::PARAM_EXPERIMENTAL => false,
         ]);
         $schema->setDescriptions([
+            self::PARAM_SNIPPETS => 'Enable or disable completion snippets',
+            self::PARAM_EXPERIMENTAL => 'Enable experimental functionality',
             self::PARAM_CLASS_COMPLETOR_LIMIT => 'Suggestion limit for the filesystem based SCF class_completor',
             self::PARAM_DISABLED_COMPLETORS => 'List of completors to disable (e.g. ``scf_class`` and ``declared_function``)',
             self::PARAM_NAME_COMPLETION_PRIORITY => <<<EOT
@@ -311,12 +317,24 @@ class CompletionWorseExtension implements Extension
             self::SERVICE_COMPLETION_WORSE_SNIPPET_FORMATTERS,
             function (Container $container) {
                 $reflector = $container->get(WorseReflectionExtension::SERVICE_REFLECTOR);
-                return [
+
+                if (!$container->getParameter(self::PARAM_SNIPPETS)) {
+                    return [];
+                }
+
+                $formatters = [
                     new FunctionLikeSnippetFormatter(),
                     new ParametersSnippetFormatter(),
-                    new NameSearchResultFunctionSnippetFormatter($reflector),
-                    new NameSearchResultClassSnippetFormatter($reflector),
                 ];
+
+                if ($container->getParameter(self::PARAM_EXPERIMENTAL)) {
+                    $formatters = array_merge($formatters, [
+                        new NameSearchResultFunctionSnippetFormatter($reflector),
+                        new NameSearchResultClassSnippetFormatter($reflector),
+                    ]);
+                }
+
+                return $formatters;
             },
             [ CompletionExtension::TAG_SNIPPET_FORMATTER => []]
         );
