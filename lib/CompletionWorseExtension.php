@@ -14,6 +14,7 @@ use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\WorseDeclaredClass
 use Phpactor\Completion\Bridge\TolerantParser\WorseReflection\WorseSignatureHelper;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\ClassFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\ConstantFormatter;
+use Phpactor\Completion\Bridge\WorseReflection\Formatter\EnumCaseFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\FunctionFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\InterfaceFormatter;
 use Phpactor\Completion\Bridge\WorseReflection\Formatter\MethodFormatter;
@@ -310,6 +311,7 @@ class CompletionWorseExtension implements Extension
                 new InterfaceFormatter(),
                 new TraitFormatter(),
                 new ConstantFormatter(),
+                new EnumCaseFormatter(),
             ];
         }, [ CompletionExtension::TAG_SHORT_DESC_FORMATTER => []]);
 
